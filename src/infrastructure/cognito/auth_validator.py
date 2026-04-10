@@ -46,5 +46,5 @@ class CognitoTokenValidator:
             
             return User(email=email, nombre=email, rol=rol_asignado)
         except Exception as e:
-            print(f"🔥 ERROR CRÍTICO EN AUTH: {str(e)}") 
+            print(f"ERROR CRÍTICO EN AUTH: {str(e)}") 
             raise HTTPException(status_code=401, detail="Token expirado o inválido")

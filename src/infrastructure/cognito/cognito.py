@@ -3,7 +3,7 @@ from typing import List, Dict, Any
 from src.domain.interfaces import IdentityRepositoryInterface
 
 class CognitoRepository(IdentityRepositoryInterface):
-    def __init__(self, region: str, user_pool_id: str):
+    def __init__(self, region: str, user_pool_id):
         self.region = region
         self.user_pool_id = user_pool_id
         self.client = boto3.client('cognito-idp', region_name=self.region)
