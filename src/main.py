@@ -1,9 +1,7 @@
-from dotenv import load_dotenv
-load_dotenv()
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from src.interface.routers import usuarios
+from src.interface.routers import health, usuarios
+
 
 def create_application() -> FastAPI:
     app = FastAPI(
@@ -16,12 +14,14 @@ def create_application() -> FastAPI:
         CORSMiddleware,
         allow_origins=["*"],
         allow_credentials=True,
-        allow_methods=["*"],
+        allow_methods=["GET", "POST", "PUT", "DELETE"],
         allow_headers=["*"],
     )
 
+    app.include_router(health.router)
     app.include_router(usuarios.router)
 
     return app
+
 
 app = create_application()

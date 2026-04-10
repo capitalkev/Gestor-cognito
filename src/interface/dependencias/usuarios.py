@@ -15,13 +15,18 @@ if not COGNITO_USER_POOL_ID:
 # Singleton de infraestructura para caché de llaves
 token_validator = CognitoTokenValidator(AWS_REGION, COGNITO_USER_POOL_ID)
 
+
 # Inyección del Repositorio
 def get_cognito_repo() -> CognitoRepository:
     return CognitoRepository(region=AWS_REGION, user_pool_id=COGNITO_USER_POOL_ID)
 
+
 # Inyección del Servicio
-def get_usuarios_service(repo: CognitoRepository = Depends(get_cognito_repo)) -> UsuariosService:
+def get_usuarios_service(
+    repo: CognitoRepository = Depends(get_cognito_repo),
+) -> UsuariosService:
     return UsuariosService(repo)
+
 
 # Dependencias de Autenticación
 async def get_current_user(authorization: str = Header(None)) -> User:
@@ -30,9 +35,11 @@ async def get_current_user(authorization: str = Header(None)) -> User:
     token = authorization.split(" ")[1]
     return await token_validator.verify_token(token)
 
+
 def require_roles(allowed_roles: list[str]):
     def role_checker(current_user: User = Depends(get_current_user)) -> User:
         if current_user.rol not in allowed_roles:
             raise HTTPException(status_code=403, detail="Permisos insuficientes")
         return current_user
+
     return role_checker
