@@ -1,11 +1,11 @@
 import boto3
-import os
 from typing import List, Dict, Any
+from src.domain.interfaces import IdentityRepositoryInterface
 
-class CognitoRepository:
-    def __init__(self):
-        self.region = os.getenv("AWS_REGION", "us-east-1")
-        self.user_pool_id = os.getenv("COGNITO_USER_POOL_ID")
+class CognitoRepository(IdentityRepositoryInterface):
+    def __init__(self, region: str, user_pool_id: str):
+        self.region = region
+        self.user_pool_id = user_pool_id
         self.client = boto3.client('cognito-idp', region_name=self.region)
 
     def listar_usuarios(self) -> List[Dict[str, Any]]:

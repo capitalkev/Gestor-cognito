@@ -2,19 +2,15 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from src.domain.models import NuevoUsuarioRequest, ActualizarRolRequest
 from src.application.usuarios_service import UsuariosService
-from src.interface.middleware.auth import require_roles
+from src.interface.dependencias.usuarios import get_usuarios_service, require_roles
 
 router = APIRouter(prefix="/api/admin/usuarios", tags=["Gestión de Usuarios IAM"])
-
-def get_usuarios_service():
-    return UsuariosService()
 
 @router.get("/")
 def listar_empleados(
     admin_user = Depends(require_roles(["admin"])), 
     service: UsuariosService = Depends(get_usuarios_service)
 ):
-    """Obtiene la lista de todos los usuarios registrados en Cognito"""
     return service.obtener_todos_los_usuarios()
 
 @router.post("/")
