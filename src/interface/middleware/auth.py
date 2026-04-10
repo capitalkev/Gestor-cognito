@@ -3,21 +3,32 @@ from fastapi import Depends, Header, HTTPException
 import httpx
 from jose import jwt, jwk
 from jose.utils import base64url_decode
-
 from src.domain.models import User
-
-REGION = os.getenv("AWS_REGION", "us-east-1")
-USER_POOL_ID = os.getenv("COGNITO_USER_POOL_ID")
-KEYS_URL = f"https://cognito-idp.{REGION}.amazonaws.com/{USER_POOL_ID}/.well-known/jwks.json"
 
 _cognito_keys = None
 
 async def get_cognito_public_keys():
     global _cognito_keys
+    
+    # Leemos las variables AQUÍ ADENTRO, en el momento de ejecutar
+    region = os.getenv("AWS_REGION", "us-east-1")
+    user_pool_id = os.getenv("COGNITO_USER_POOL_ID")
+    
+    if not user_pool_id:
+        raise Exception("COGNITO_USER_POOL_ID no está configurado en las variables de entorno")
+        
+    keys_url = f"https://cognito-idp.{region}.amazonaws.com/{user_pool_id}/.well-known/jwks.json"
+
     if not _cognito_keys:
+        print(f"Solicitando llaves a: {keys_url}")
         async with httpx.AsyncClient() as client:
-            response = await client.get(KEYS_URL)
-            _cognito_keys = response.json()['keys']
+            response = await client.get(keys_url)
+            
+            if response.status_code != 200:
+                print(f"🔥 Error de Cognito: {response.text}")
+                raise Exception("No se pudieron descargar las llaves públicas de Cognito.")
+                
+            _cognito_keys = response.json().get('keys', [])
     return _cognito_keys
 
 async def get_current_user(authorization: str = Header(None)) -> User:
