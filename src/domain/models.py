@@ -8,10 +8,14 @@ class User(BaseModel):
 class NuevoUsuarioRequest(BaseModel):
     email: str
     rol: str
-    password_temporal: str = "Temporal123!"
+    password_temporal: str
 
 class UsuarioResponse(BaseModel):
     username: str
     email: str
     status: str
     enabled: bool
+    
+class ActualizarRolRequest(BaseModel):
+    rol_antiguo: str
+    rol_nuevo: str

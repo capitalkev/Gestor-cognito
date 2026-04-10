@@ -40,3 +40,40 @@ class CognitoRepository:
             Username=email,
             GroupName=rol.lower()
         )
+        
+    def cambiar_rol_usuario(self, email: str, rol_antiguo: str, rol_nuevo: str):
+        # 1. Sacar al usuario del grupo (rol) actual
+        if rol_antiguo:
+            try:
+                self.client.admin_remove_user_from_group(
+                    UserPoolId=self.user_pool_id,
+                    Username=email,
+                    GroupName=rol_antiguo.lower()
+                )
+            except self.client.exceptions.ResourceNotFoundException:
+                pass # Si el grupo no existe o no estaba en él, lo ignoramos
+
+        # 2. Añadirlo al nuevo grupo (rol)
+        self.client.admin_add_user_to_group(
+            UserPoolId=self.user_pool_id,
+            Username=email,
+            GroupName=rol_nuevo.lower()
+        )
+
+    def deshabilitar_usuario(self, email: str):
+        self.client.admin_disable_user(
+            UserPoolId=self.user_pool_id,
+            Username=email
+        )
+
+    def habilitar_usuario(self, email: str):
+        self.client.admin_enable_user(
+            UserPoolId=self.user_pool_id,
+            Username=email
+        )
+
+    def eliminar_usuario(self, email: str):
+        self.client.admin_delete_user(
+            UserPoolId=self.user_pool_id,
+            Username=email
+        )

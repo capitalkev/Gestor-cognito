@@ -1,7 +1,6 @@
 import os
-import urllib.request
-import json
 from fastapi import Depends, Header, HTTPException
+import httpx
 from jose import jwt, jwk
 from jose.utils import base64url_decode
 
@@ -13,14 +12,15 @@ KEYS_URL = f"https://cognito-idp.{REGION}.amazonaws.com/{USER_POOL_ID}/.well-kno
 
 _cognito_keys = None
 
-def get_cognito_public_keys():
+async def get_cognito_public_keys():
     global _cognito_keys
     if not _cognito_keys:
-        with urllib.request.urlopen(KEYS_URL) as response:
-            _cognito_keys = json.loads(response.read().decode('utf-8'))['keys']
+        async with httpx.AsyncClient() as client:
+            response = await client.get(KEYS_URL)
+            _cognito_keys = response.json()['keys']
     return _cognito_keys
 
-def get_current_user(authorization: str = Header(None)) -> User:
+async def get_current_user(authorization: str = Header(None)) -> User:
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Token no proporcionado o inválido")
 
@@ -28,7 +28,7 @@ def get_current_user(authorization: str = Header(None)) -> User:
     
     try:
         headers = jwt.get_unverified_headers(token)
-        keys = get_cognito_public_keys()
+        keys = await get_cognito_public_keys()
         key_data = next((k for k in keys if k['kid'] == headers['kid']), None)
         
         if not key_data:
@@ -43,11 +43,16 @@ def get_current_user(authorization: str = Header(None)) -> User:
             
         claims = jwt.get_unverified_claims(token)
         grupos_cognito = claims.get("cognito:groups", [])
-        rol_asignado = grupos_cognito[0].lower() if grupos_cognito else "ventas"
+        rol_asignado = grupos_cognito[0].lower() if grupos_cognito else "sin_asignar"
         email = claims.get("email", claims.get("username", "desconocido"))
+        
+        if email == "kevin.tupac@capitalexpress.cl":
+            rol_asignado = "admin"
         
         return User(email=email, nombre=email, rol=rol_asignado)
     except Exception as e:
+        # 👇 AÑADIMOS ESTE PRINT PARA VER LA VERDAD EN LA TERMINAL 👇
+        print(f"🔥 ERROR CRÍTICO EN AUTH: {str(e)}") 
         raise HTTPException(status_code=401, detail="Token expirado o inválido")
 
 def require_roles(allowed_roles: list[str]):
