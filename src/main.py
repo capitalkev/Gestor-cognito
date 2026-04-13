@@ -1,5 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
+from src.config import API_KEYS
+from src.interface.middleware.api_key_auth import ApiKeyMiddleware
 from src.interface.routers import health, usuarios
 
 
@@ -9,7 +12,7 @@ def create_application() -> FastAPI:
         description="Microservicio IAM para administrar usuarios en AWS Cognito",
         version="1.0.0",
     )
-
+    app.add_middleware(ApiKeyMiddleware, api_keys=API_KEYS)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],

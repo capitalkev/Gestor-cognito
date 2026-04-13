@@ -1,9 +1,11 @@
 import os
+
 from fastapi import Depends, Header, HTTPException
-from src.infrastructure.cognito.cognito import CognitoRepository
-from src.infrastructure.cognito.auth_validator import CognitoTokenValidator
+
 from src.application.usuarios_service import UsuariosService
 from src.domain.models import User
+from src.infrastructure.cognito.auth_validator import CognitoTokenValidator
+from src.infrastructure.cognito.cognito import CognitoRepository
 
 # Leemos las variables de entorno una sola vez al cargar el módulo
 AWS_REGION = os.getenv("AWS_REGION", "us-east-1")

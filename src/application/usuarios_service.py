@@ -1,5 +1,5 @@
 from src.domain.interfaces import IdentityRepositoryInterface
-from src.domain.models import NuevoUsuarioRequest, ActualizarRolRequest
+from src.domain.models import ActualizarRolRequest, NuevoUsuarioRequest
 
 
 class UsuariosService:
@@ -22,7 +22,7 @@ class UsuariosService:
                 "message": f"Usuario {datos.email} creado con rol {datos.rol}",
             }
         except Exception as e:
-            raise ValueError(f"Error al registrar empleado: {str(e)}")
+            raise ValueError(f"Error al registrar empleado: {e!s}")
 
     def actualizar_rol_empleado(self, email: str, datos: ActualizarRolRequest):
         try:
@@ -32,7 +32,7 @@ class UsuariosService:
                 "message": f"Rol de {email} actualizado a {datos.rol_nuevo}",
             }
         except Exception as e:
-            raise ValueError(f"Error al actualizar el rol: {str(e)}")
+            raise ValueError(f"Error al actualizar el rol: {e!s}")
 
     def cambiar_estado_empleado(self, email: str, habilitar: bool):
         try:
@@ -44,7 +44,7 @@ class UsuariosService:
                 estado = "deshabilitado"
             return {"success": True, "message": f"Usuario {email} ha sido {estado}"}
         except Exception as e:
-            raise ValueError(f"Error al cambiar el estado del usuario: {str(e)}")
+            raise ValueError(f"Error al cambiar el estado del usuario: {e!s}")
 
     def eliminar_empleado(self, email: str):
         try:
@@ -54,4 +54,4 @@ class UsuariosService:
                 "message": f"Usuario {email} eliminado permanentemente",
             }
         except Exception as e:
-            raise ValueError(f"Error al eliminar el usuario: {str(e)}")
+            raise ValueError(f"Error al eliminar el usuario: {e!s}")

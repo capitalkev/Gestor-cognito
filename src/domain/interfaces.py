@@ -1,8 +1,8 @@
-from typing import Protocol, List, Dict, Any
+from typing import Any, Protocol
 
 
 class IdentityRepositoryInterface(Protocol):
-    def listar_usuarios(self) -> List[Dict[str, Any]]: ...
+    def listar_usuarios(self) -> list[dict[str, Any]]: ...
 
     def crear_usuario(self, email: str, password_temporal: str) -> str: ...
 

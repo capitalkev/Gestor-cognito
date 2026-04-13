@@ -1,9 +1,10 @@
-import httpx
-from jose import jwt, jwk
-from jose.utils import base64url_decode
-from fastapi import HTTPException
-from src.domain.models import User
 from typing import Any
+
+import httpx
+from fastapi import HTTPException
+from jose import jwt
+
+from src.domain.models import User
 
 
 class CognitoTokenValidator:
@@ -26,23 +27,11 @@ class CognitoTokenValidator:
 
     async def verify_token(self, token: str) -> User:
         try:
-            headers = jwt.get_unverified_headers(token)
             keys = await self._get_public_keys()
-            key_data = next((k for k in keys if k["kid"] == headers["kid"]), None)
+            claims = jwt.decode(
+                token, keys, algorithms=["RS256"], options={"verify_aud": False}
+            )
 
-            if not key_data:
-                raise HTTPException(
-                    status_code=401, detail="Llave pública no encontrada"
-                )
-
-            public_key = jwk.construct(key_data)
-            message, encoded_signature = str(token).rsplit(".", 1)
-            decoded_signature = base64url_decode(encoded_signature.encode("utf-8"))
-
-            if not public_key.verify(message.encode("utf8"), decoded_signature):
-                raise HTTPException(status_code=401, detail="Firma del token inválida")
-
-            claims = jwt.get_unverified_claims(token)
             grupos_cognito = claims.get("cognito:groups", [])
             rol_asignado = (
                 grupos_cognito[0].lower() if grupos_cognito else "sin_asignar"
@@ -51,4 +40,4 @@ class CognitoTokenValidator:
 
             return User(email=email, nombre=email, rol=rol_asignado)
         except Exception:
-            raise HTTPException(status_code=401, detail="Token expirado o inválido")
+            raise HTTPException(status_code=401, detail="Token expirado o inválido") from None
