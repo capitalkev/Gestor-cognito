@@ -32,12 +32,11 @@ class CognitoTokenValidator:
                 token, keys, algorithms=["RS256"], options={"verify_aud": False}
             )
 
-            grupos_cognito = claims.get("cognito:groups", [])
-            rol_asignado = (
-                grupos_cognito[0].lower() if grupos_cognito else "sin_asignar"
-            )
+            grupos = claims.get("cognito:groups", [])
+            rol_asignado = grupos[0].lower() if grupos else "sin_asignar"
+
             email = claims.get("email", claims.get("username", "desconocido"))
 
             return User(email=email, nombre=email, rol=rol_asignado)
         except Exception:
-            raise HTTPException(status_code=401, detail="Token expirado o inválido") from None
+            raise HTTPException(status_code=401, detail="Token inválido") from None

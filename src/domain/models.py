@@ -9,8 +9,7 @@ class User(BaseModel):
 
 class NuevoUsuarioRequest(BaseModel):
     email: str
-    rol: str
-    password_temporal: str
+    rol: str = 'Sin Rol'
 
 
 class UsuarioResponse(BaseModel):

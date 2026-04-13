@@ -2,75 +2,57 @@ from typing import Any
 
 import boto3
 
-from src.domain.interfaces import IdentityRepositoryInterface
+from src.domain.interfaces import UsuarioInterface
 
 
-class CognitoRepository(IdentityRepositoryInterface):
+class CognitoRepository(UsuarioInterface):
     def __init__(self, region: str, user_pool_id: str):
         self.region = region
         self.user_pool_id = user_pool_id
         self.client = boto3.client("cognito-idp", region_name=self.region)
 
     def listar_usuarios(self) -> list[dict[str, Any]]:
+        # Obtenemos usuarios y sus grupos asociados
         response = self.client.list_users(UserPoolId=self.user_pool_id)
         usuarios = []
         for user in response.get("Users", []):
             email = next(
-                (
-                    attr["Value"]
-                    for attr in user["Attributes"]
-                    if attr["Name"] == "email"
-                ),
-                "N/A",
+                (a["Value"] for a in user["Attributes"] if a["Name"] == "email"), "N/A"
             )
+
+            # Obtener grupos del usuario directamente de Cognito
+            groups_resp = self.client.admin_list_groups_for_user(
+                UserPoolId=self.user_pool_id, Username=user["Username"]
+            )
+            roles = [g["GroupName"] for g in groups_resp.get("Groups", [])]
+
             usuarios.append(
                 {
                     "username": user["Username"],
                     "email": email,
                     "status": user["UserStatus"],
                     "enabled": user["Enabled"],
+                    "roles": roles if roles else ["sin_asignar"],
                 }
             )
         return usuarios
 
-    def crear_usuario(self, email: str, password_temporal: str) -> str:
-        response = self.client.admin_create_user(
-            UserPoolId=self.user_pool_id,
-            Username=email,
-            UserAttributes=[
-                {"Name": "email", "Value": email},
-                {"Name": "email_verified", "Value": "true"},
-            ],
-            TemporaryPassword=password_temporal,
-            MessageAction="SUPPRESS",
-        )
-        return response["User"]["Username"]
-
     def asignar_rol(self, email: str, rol: str) -> None:
+        """Agrega al usuario a un grupo de Cognito (el rol)"""
         self.client.admin_add_user_to_group(
             UserPoolId=self.user_pool_id, Username=email, GroupName=rol.lower()
         )
 
     def cambiar_rol_usuario(self, email: str, rol_antiguo: str, rol_nuevo: str) -> None:
-        if rol_antiguo:
-            try:
-                self.client.admin_remove_user_from_group(
-                    UserPoolId=self.user_pool_id,
-                    Username=email,
-                    GroupName=rol_antiguo.lower(),
-                )
-            except self.client.exceptions.ResourceNotFoundException:
-                pass
-
-        self.client.admin_add_user_to_group(
-            UserPoolId=self.user_pool_id, Username=email, GroupName=rol_nuevo.lower()
-        )
-
-    def deshabilitar_usuario(self, email: str) -> None:
-        self.client.admin_disable_user(UserPoolId=self.user_pool_id, Username=email)
-
-    def habilitar_usuario(self, email: str) -> None:
-        self.client.admin_enable_user(UserPoolId=self.user_pool_id, Username=email)
+        """Mueve a un usuario de un grupo a otro de forma atómica"""
+        if rol_antiguo and rol_antiguo != "sin_asignar":
+            self.client.admin_remove_user_from_group(
+                UserPoolId=self.user_pool_id,
+                Username=email,
+                GroupName=rol_antiguo.lower(),
+            )
+        if rol_nuevo != "sin_asignar":
+            self.asignar_rol(email, rol_nuevo)
 
     def eliminar_usuario(self, email: str) -> None:
         self.client.admin_delete_user(UserPoolId=self.user_pool_id, Username=email)
