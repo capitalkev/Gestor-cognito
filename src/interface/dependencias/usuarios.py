@@ -1,6 +1,7 @@
 import os
 
 from fastapi import Depends, Header, HTTPException
+from fastapi.security import SecurityScopes
 
 from src.application.usuarios_service import UsuariosService
 from src.domain.models import User
@@ -31,11 +32,21 @@ def get_usuarios_service(
 
 
 # Dependencias de Autenticación
-async def get_current_user(authorization: str = Header(None)) -> User:
+async def get_current_user(
+    security_scopes: SecurityScopes,  # FastAPI inyecta los scopes aquí
+    authorization: str = Header(None),
+) -> User:
     if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Token no proporcionado o inválido")
+        raise HTTPException(status_code=401, detail="Token inválido")
+
     token = authorization.split(" ")[1]
-    return await token_validator.verify_token(token)
+    user = await token_validator.verify_token(token)
+
+    if security_scopes.scopes:
+        if user.rol not in security_scopes.scopes:
+            raise HTTPException(status_code=403, detail="Permisos insuficientes")
+
+    return user
 
 
 def require_roles(allowed_roles: list[str]):
@@ -45,3 +56,9 @@ def require_roles(allowed_roles: list[str]):
         return current_user
 
     return role_checker
+
+
+async def get_admin_user(current_user: User = Depends(get_current_user)) -> User:
+    if current_user.rol != "admin":
+        raise HTTPException(status_code=403, detail="Debe ser administrador")
+    return current_user
