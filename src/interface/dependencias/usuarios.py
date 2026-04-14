@@ -13,7 +13,7 @@ from src.infrastructure.cognito.auth_validator import CognitoTokenValidator
 from src.infrastructure.cognito.cognito import CognitoRepository
 
 AWS_REGION = os.getenv("AWS_REGION", "us-east-1")
-COGNITO_USER_POOL_ID = os.getenv("COGNITO_USER_POOL_ID")
+COGNITO_USER_POOL_ID = os.getenv("COGNITO_USER_POOL_ID", "")
 
 if not COGNITO_USER_POOL_ID:
     raise ValueError("COGNITO_USER_POOL_ID no está configurado")
@@ -25,7 +25,7 @@ security_scheme = HTTPBearer()
 
 
 def get_cognito_repo() -> CognitoRepository:
-    return CognitoRepository(region=AWS_REGION, user_pool_id=str(COGNITO_USER_POOL_ID))
+    return CognitoRepository(region=AWS_REGION, user_pool_id=COGNITO_USER_POOL_ID)
 
 
 def get_usuarios_service() -> GetUsuarios:
@@ -44,7 +44,6 @@ def update_rol_service() -> UpdateUsuarios:
     return UpdateUsuarios(repository=get_cognito_repo())
 
 
-# 1. AUTENTICACIÓN: Solo se encarga de saber QUIÉN es el usuario
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security_scheme),
 ) -> User:
@@ -54,7 +53,6 @@ async def get_current_user(
     return user
 
 
-# 2. AUTORIZACIÓN: Se encarga de saber si el usuario PUEDE hacer la acción
 def require_roles(allowed_roles: list[str]) -> Callable[..., User]:
     """Fábrica de dependencias para validar roles específicos."""
 

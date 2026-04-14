@@ -30,10 +30,22 @@ class ApiKeyMiddleware(BaseHTTPMiddleware):
 
         if request.url.path not in self.public_paths:
             api_key = request.headers.get("X-API-KEY")
-            if api_key is not None:
-                api_key = api_key.strip()
-            is_valid = any(secrets.compare_digest(api_key, valid_key) for valid_key in self.api_keys)
+
+            if not api_key:
+                return JSONResponse(
+                    status_code=401, content={"detail": "Missing X-API-KEY header"}
+                )
+
+            api_key = api_key.strip()
+
+            is_valid = any(
+                secrets.compare_digest(api_key, valid_key)
+                for valid_key in self.api_keys
+            )
             if not is_valid:
-                return JSONResponse(status_code=401, content={"detail": "Unauthorized"})
+                return JSONResponse(
+                    status_code=401, content={"detail": "Invalid API Key"}
+                )
+
         response = await call_next(request)
         return response

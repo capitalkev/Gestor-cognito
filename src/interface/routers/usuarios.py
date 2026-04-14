@@ -20,7 +20,6 @@ router = APIRouter(prefix="/api/admin/usuarios", tags=["Gestión de Usuarios IAM
 
 @router.get("/")
 def listar_empleados(
-    # Exigimos rol de admin y obtenemos el usuario actual
     current_user: User = Depends(require_roles(["admin"])),
     service: GetUsuarios = Depends(get_usuarios_service),
 ) -> list[dict[str, Any]]:
@@ -30,7 +29,6 @@ def listar_empleados(
 @router.post("/")
 def crear_empleado(
     email: str,
-    # Si no necesitamos usar la variable current_user, podemos ponerlo en dependencies
     admin_user: User = Depends(require_roles(["admin"])),
     service: AddUsuarios = Depends(add_usuarios_service),
 ) -> str:

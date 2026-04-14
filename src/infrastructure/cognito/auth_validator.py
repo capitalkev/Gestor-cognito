@@ -29,17 +29,40 @@ class CognitoTokenValidator:
         try:
             jwks = await self._get_jwks()
             claims = jwt.decode(
-                token, jwks, algorithms=["RS256"], options={"verify_aud": False}
+                token,
+                jwks,
+                algorithms=["RS256"],
+                options={"verify_aud": False, "verify_at_hash": False},
             )
+
+            # Extraemos el email primero
+            email = claims.get("email", claims.get("username", "desconocido")).lower()
+
+            dominios_permitidos = ["@capitalexpress.cl", "@capitalexpress.pe"]
+            if not any(email.endswith(dominio) for dominio in dominios_permitidos):
+                raise HTTPException(
+                    status_code=403,
+                    detail=f"Acceso denegado: El dominio del correo '{email}' no está autorizado corporativamente.",
+                )
 
             grupos_cognito = claims.get("cognito:groups", [])
-            rol_asignado = (
-                grupos_cognito[0].lower() if grupos_cognito else "sin_asignar"
-            )
-            email = claims.get("email", claims.get("username", "desconocido"))
+
+            grupos_reales = [
+                g.lower()
+                for g in grupos_cognito
+                if not g.endswith("_google") and "us-east-1" not in g
+            ]
+
+            if "admin" in grupos_reales:
+                rol_asignado = "admin"
+            elif grupos_reales:
+                rol_asignado = grupos_reales[0]
+            else:
+                rol_asignado = "sin_asignar"
 
             return User(email=email, nombre=email, rol=rol_asignado)
+
+        except HTTPException:
+            raise
         except Exception:
-            raise HTTPException(
-                status_code=401, detail="Token expirado o inválido"
-            ) from None
+            raise HTTPException(status_code=401, detail="Token inválido:") from None
