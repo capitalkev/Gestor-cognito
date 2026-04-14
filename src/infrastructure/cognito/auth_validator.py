@@ -12,31 +12,34 @@ class CognitoTokenValidator:
         self.region = region
         self.user_pool_id = user_pool_id
         self.keys_url = f"https://cognito-idp.{region}.amazonaws.com/{user_pool_id}/.well-known/jwks.json"
-        self._keys: list[dict[str, Any]] = []
+        self._jwks: dict[str, Any] = {}
 
-    async def _get_public_keys(self) -> list[dict[str, Any]]:
-        if not self._keys:
+    async def _get_jwks(self) -> dict[str, Any]:
+        if not self._jwks:
             async with httpx.AsyncClient() as client:
                 response = await client.get(self.keys_url)
                 if response.status_code != 200:
                     raise Exception(
                         "No se pudieron descargar las llaves públicas de Cognito."
                     )
-                self._keys = response.json().get("keys", [])
-        return self._keys
+                self._jwks = response.json()
+        return self._jwks
 
     async def verify_token(self, token: str) -> User:
         try:
-            keys = await self._get_public_keys()
+            jwks = await self._get_jwks()
             claims = jwt.decode(
-                token, keys, algorithms=["RS256"], options={"verify_aud": False}
+                token, jwks, algorithms=["RS256"], options={"verify_aud": False}
             )
 
-            grupos = claims.get("cognito:groups", [])
-            rol_asignado = grupos[0].lower() if grupos else "sin_asignar"
-
+            grupos_cognito = claims.get("cognito:groups", [])
+            rol_asignado = (
+                grupos_cognito[0].lower() if grupos_cognito else "sin_asignar"
+            )
             email = claims.get("email", claims.get("username", "desconocido"))
 
             return User(email=email, nombre=email, rol=rol_asignado)
         except Exception:
-            raise HTTPException(status_code=401, detail="Token inválido") from None
+            raise HTTPException(
+                status_code=401, detail="Token expirado o inválido"
+            ) from None
