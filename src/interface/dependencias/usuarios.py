@@ -1,13 +1,14 @@
 import os
 from collections.abc import Callable
 
-from fastapi import Depends, HTTPException
+from fastapi import Depends, HTTPException, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from src.application.add_usuario import AddUsuarios
 from src.application.delete_usuario import DeleteUsuarios
 from src.application.get_usuario import GetUsuarios
 from src.application.update_rol import UpdateUsuarios
+from src.config import settings
 from src.domain.models import User
 from src.infrastructure.cognito.auth_validator import CognitoTokenValidator
 from src.infrastructure.cognito.cognito import CognitoRepository
@@ -18,9 +19,11 @@ COGNITO_USER_POOL_ID = os.getenv("COGNITO_USER_POOL_ID", "")
 if not COGNITO_USER_POOL_ID:
     raise ValueError("COGNITO_USER_POOL_ID no está configurado")
 
-token_validator = CognitoTokenValidator(AWS_REGION, COGNITO_USER_POOL_ID)
+token_validator = CognitoTokenValidator(
+    AWS_REGION, COGNITO_USER_POOL_ID, settings.cognito_app_client_id
+)
 
-security_scheme = HTTPBearer()
+security_scheme = HTTPBearer(auto_error=False)
 
 
 def get_cognito_repo() -> CognitoRepository:
@@ -44,12 +47,22 @@ def update_rol_service() -> UpdateUsuarios:
 
 
 async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security_scheme),
+    request: Request,
+    credentials: HTTPAuthorizationCredentials | None = Depends(security_scheme),
 ) -> User:
-    """Extrae el token Bearer y valida el usuario contra Cognito."""
-    token = credentials.credentials
-    user = await token_validator.verify_token(token)
-    return user
+    """Valida el token contra Cognito O asume usuario de sistema si usa API Key."""
+
+    if credentials:
+        token = credentials.credentials
+        user = await token_validator.verify_token(token)
+        return user
+    api_key = request.headers.get("X-API-KEY")
+    if api_key:
+        return User(
+            email="sistema@microservicio.interno", nombre="Integración M2M", rol="admin"
+        )
+
+    raise HTTPException(status_code=401, detail="Credenciales no proporcionadas.")
 
 
 def require_roles(allowed_roles: list[str]) -> Callable[..., User]:

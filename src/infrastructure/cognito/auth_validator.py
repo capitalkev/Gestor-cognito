@@ -4,13 +4,15 @@ import httpx
 from fastapi import HTTPException
 from jose import jwt
 
+from src.config import settings
 from src.domain.models import User
 
 
 class CognitoTokenValidator:
-    def __init__(self, region: str, user_pool_id: str):
+    def __init__(self, region: str, user_pool_id: str, app_client_id: str):
         self.region = region
         self.user_pool_id = user_pool_id
+        self.app_client_id = app_client_id
         self.keys_url = f"https://cognito-idp.{region}.amazonaws.com/{user_pool_id}/.well-known/jwks.json"
         self._jwks: dict[str, Any] = {}
 
@@ -32,17 +34,16 @@ class CognitoTokenValidator:
                 token,
                 jwks,
                 algorithms=["RS256"],
-                options={"verify_aud": False, "verify_at_hash": False},
+                audience=self.app_client_id,
+                options={"verify_aud": False},
             )
 
-            # Extraemos el email primero
             email = claims.get("email", claims.get("username", "desconocido")).lower()
 
-            dominios_permitidos = ["@capitalexpress.cl", "@capitalexpress.pe"]
-            if not any(email.endswith(dominio) for dominio in dominios_permitidos):
+            if not any(email.endswith(dominio) for dominio in settings.parsed_domains):
                 raise HTTPException(
                     status_code=403,
-                    detail=f"Acceso denegado: El dominio del correo '{email}' no está autorizado corporativamente.",
+                    detail="Acceso denegado: El dominio corporativo no está autorizado.",
                 )
 
             grupos_cognito = claims.get("cognito:groups", [])

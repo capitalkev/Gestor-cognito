@@ -29,23 +29,28 @@ class ApiKeyMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
 
         if request.url.path not in self.public_paths:
+            auth_header = request.headers.get("Authorization")
+            if auth_header and auth_header.startswith("Bearer "):
+                return await call_next(request)
+
             api_key = request.headers.get("X-API-KEY")
 
             if not api_key:
                 return JSONResponse(
-                    status_code=401, content={"detail": "Missing X-API-KEY header"}
+                    status_code=401,
+                    content={
+                        "detail": "No autenticado: Se requiere cabecera Authorization (Bearer) o X-API-KEY"
+                    },
                 )
 
             api_key = api_key.strip()
-
             is_valid = any(
                 secrets.compare_digest(api_key, valid_key)
                 for valid_key in self.api_keys
             )
             if not is_valid:
                 return JSONResponse(
-                    status_code=401, content={"detail": "Invalid API Key"}
+                    status_code=401, content={"detail": "API Key inválida"}
                 )
 
-        response = await call_next(request)
-        return response
+        return await call_next(request)

@@ -1,6 +1,7 @@
 from typing import Any
 
 import boto3
+from fastapi import HTTPException
 
 from src.domain.interfaces import UsuarioInterface
 
@@ -56,20 +57,24 @@ class CognitoRepository(UsuarioInterface):
         self.client.admin_delete_user(UserPoolId=self.user_pool_id, Username=email)
 
     def crear_usuario(self, email: str, rol: str = "Sin Rol") -> str:
-        """Crea un usuario en Cognito y le asigna un rol inicial."""
-        response = self.client.admin_create_user(
-            UserPoolId=self.user_pool_id,
-            Username=email,
-            UserAttributes=[
-                {"Name": "email", "Value": email},
-                {"Name": "email_verified", "Value": "true"},
-            ],
-            MessageAction="SUPPRESS",
-        )
+        """Crea un usuario en Cognito y le asigna un rol inicial con manejo de errores."""
+        try:
+            response = self.client.admin_create_user(
+                UserPoolId=self.user_pool_id,
+                Username=email,
+                UserAttributes=[
+                    {"Name": "email", "Value": email},
+                    {"Name": "email_verified", "Value": "true"},
+                ],
+                MessageAction="SUPPRESS",
+            )
 
-        username = response["User"]["Username"]
+            username = response["User"]["Username"]
 
-        if rol and rol.lower() != "sin_asignar":
-            self.asignar_rol(username, rol)
+            if rol and rol.lower() != "sin_asignar":
+                self.asignar_rol(username, rol)
 
-        return username
+            return username
+
+        except ValueError as ve:
+            raise HTTPException(status_code=400, detail=str(ve)) from None
