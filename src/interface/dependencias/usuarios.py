@@ -4,7 +4,6 @@ from collections.abc import Callable
 from fastapi import Depends, HTTPException, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
-from src.application.add_usuario import AddUsuarios
 from src.application.delete_usuario import DeleteUsuarios
 from src.application.get_usuario import GetUsuarios
 from src.application.update_rol import UpdateUsuarios
