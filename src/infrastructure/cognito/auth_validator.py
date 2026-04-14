@@ -35,7 +35,7 @@ class CognitoTokenValidator:
                 jwks,
                 algorithms=["RS256"],
                 audience=self.app_client_id,
-                options={"verify_aud": False},
+                options={"verify_at_hash": False},
             )
 
             email = claims.get("email", claims.get("username", "desconocido")).lower()

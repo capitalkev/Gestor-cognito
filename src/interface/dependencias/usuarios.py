@@ -34,10 +34,6 @@ def get_usuarios_service() -> GetUsuarios:
     return GetUsuarios(repository=get_cognito_repo())
 
 
-def add_usuarios_service() -> AddUsuarios:
-    return AddUsuarios(repository=get_cognito_repo())
-
-
 def delete_usuarios_service() -> DeleteUsuarios:
     return DeleteUsuarios(repository=get_cognito_repo())
 
