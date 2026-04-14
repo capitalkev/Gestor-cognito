@@ -56,3 +56,22 @@ class CognitoRepository(UsuarioInterface):
 
     def eliminar_usuario(self, email: str) -> None:
         self.client.admin_delete_user(UserPoolId=self.user_pool_id, Username=email)
+
+    def crear_usuario(self, email: str, rol: str = "Sin Rol") -> str:
+        """Crea un usuario en Cognito y le asigna un rol inicial."""
+        response = self.client.admin_create_user(
+            UserPoolId=self.user_pool_id,
+            Username=email,
+            UserAttributes=[
+                {"Name": "email", "Value": email},
+                {"Name": "email_verified", "Value": "true"},
+            ],
+            MessageAction="SUPPRESS",
+        )
+
+        username = response["User"]["Username"]
+
+        if rol and rol.lower() != "sin_asignar":
+            self.asignar_rol(username, rol)
+
+        return username

@@ -1,7 +1,8 @@
 import os
+from collections.abc import Callable
 
-from fastapi import Depends, Header, HTTPException
-from fastapi.security import SecurityScopes
+from fastapi import Depends, HTTPException
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from src.application.add_usuario import AddUsuarios
 from src.application.delete_usuario import DeleteUsuarios
@@ -11,20 +12,20 @@ from src.domain.models import User
 from src.infrastructure.cognito.auth_validator import CognitoTokenValidator
 from src.infrastructure.cognito.cognito import CognitoRepository
 
-# Leemos las variables de entorno una sola vez al cargar el módulo
 AWS_REGION = os.getenv("AWS_REGION", "us-east-1")
 COGNITO_USER_POOL_ID = os.getenv("COGNITO_USER_POOL_ID")
 
 if not COGNITO_USER_POOL_ID:
     raise ValueError("COGNITO_USER_POOL_ID no está configurado")
 
-# Singleton de infraestructura para caché de llaves
 token_validator = CognitoTokenValidator(AWS_REGION, COGNITO_USER_POOL_ID)
 
+# Instanciamos el esquema de seguridad para Swagger
+security_scheme = HTTPBearer()
 
-# Inyección del Repositorio
+
 def get_cognito_repo() -> CognitoRepository:
-    return CognitoRepository(region=AWS_REGION, user_pool_id=COGNITO_USER_POOL_ID)
+    return CognitoRepository(region=AWS_REGION, user_pool_id=str(COGNITO_USER_POOL_ID))
 
 
 def get_usuarios_service() -> GetUsuarios:
@@ -43,25 +44,20 @@ def update_rol_service() -> UpdateUsuarios:
     return UpdateUsuarios(repository=get_cognito_repo())
 
 
-# Dependencias de Autenticación
+# 1. AUTENTICACIÓN: Solo se encarga de saber QUIÉN es el usuario
 async def get_current_user(
-    security_scopes: SecurityScopes,
-    authorization: str = Header(None),
+    credentials: HTTPAuthorizationCredentials = Depends(security_scheme),
 ) -> User:
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Token inválido")
-
-    token = authorization.split(" ")[1]
+    """Extrae el token Bearer y valida el usuario contra Cognito."""
+    token = credentials.credentials
     user = await token_validator.verify_token(token)
-
-    if security_scopes.scopes:
-        if user.rol not in security_scopes.scopes:
-            raise HTTPException(status_code=403, detail="Permisos insuficientes")
-
     return user
 
 
-def require_roles(allowed_roles: list[str]):
+# 2. AUTORIZACIÓN: Se encarga de saber si el usuario PUEDE hacer la acción
+def require_roles(allowed_roles: list[str]) -> Callable[..., User]:
+    """Fábrica de dependencias para validar roles específicos."""
+
     def role_checker(current_user: User = Depends(get_current_user)) -> User:
         if current_user.rol == "sin_asignar":
             raise HTTPException(
@@ -70,13 +66,10 @@ def require_roles(allowed_roles: list[str]):
             )
 
         if current_user.rol not in allowed_roles:
-            raise HTTPException(status_code=403, detail="Permisos insuficientes")
+            raise HTTPException(
+                status_code=403, detail="Permisos insuficientes para esta acción."
+            )
+
         return current_user
 
     return role_checker
-
-
-async def get_admin_user(current_user: User = Depends(get_current_user)) -> User:
-    if current_user.rol != "admin":
-        raise HTTPException(status_code=403, detail="Debe ser administrador")
-    return current_user
