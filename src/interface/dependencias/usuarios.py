@@ -1,4 +1,3 @@
-import os
 from collections.abc import Callable
 
 from fastapi import Depends, HTTPException, Request
@@ -12,21 +11,15 @@ from src.domain.models import User
 from src.infrastructure.cognito.auth_validator import CognitoTokenValidator
 from src.infrastructure.cognito.cognito import CognitoRepository
 
-AWS_REGION = os.getenv("AWS_REGION", "us-east-1")
-COGNITO_USER_POOL_ID = os.getenv("COGNITO_USER_POOL_ID", "")
-
-if not COGNITO_USER_POOL_ID:
-    raise ValueError("COGNITO_USER_POOL_ID no está configurado")
-
 token_validator = CognitoTokenValidator(
-    AWS_REGION, COGNITO_USER_POOL_ID, settings.cognito_app_client_id
+    settings.aws_region, settings.cognito_user_pool_id, settings.cognito_app_client_id
 )
 
 security_scheme = HTTPBearer(auto_error=False)
 
 
 def get_cognito_repo() -> CognitoRepository:
-    return CognitoRepository(region=AWS_REGION, user_pool_id=COGNITO_USER_POOL_ID)
+    return CognitoRepository(region=settings.aws_region, user_pool_id=settings.cognito_user_pool_id)
 
 
 def get_usuarios_service() -> GetUsuarios:
