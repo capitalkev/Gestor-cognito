@@ -19,7 +19,9 @@ security_scheme = HTTPBearer(auto_error=False)
 
 
 def get_cognito_repo() -> CognitoRepository:
-    return CognitoRepository(region=settings.aws_region, user_pool_id=settings.cognito_user_pool_id)
+    return CognitoRepository(
+        region=settings.aws_region, user_pool_id=settings.cognito_user_pool_id
+    )
 
 
 def get_usuarios_service() -> GetUsuarios:
@@ -47,23 +49,23 @@ async def get_current_user(
     api_key = request.headers.get("X-API-KEY")
     if api_key:
         return User(
-            email="sistema@microservicio.interno", nombre="Integración M2M", rol="admin"
+            email="sistema@microservicio.interno",
+            nombre="Integración M2M",
+            roles=["admin"],
         )
 
     raise HTTPException(status_code=401, detail="Credenciales no proporcionadas.")
 
 
 def require_roles(allowed_roles: list[str]) -> Callable[..., User]:
-    """Fábrica de dependencias para validar roles específicos."""
-
     def role_checker(current_user: User = Depends(get_current_user)) -> User:
-        if current_user.rol == "sin_asignar":
+        if "sin_asignar" in current_user.roles and len(current_user.roles) == 1:
             raise HTTPException(
                 status_code=403,
                 detail="Tu cuenta aún no tiene un rol asignado por un administrador.",
             )
 
-        if current_user.rol not in allowed_roles:
+        if not any(rol in allowed_roles for rol in current_user.roles):
             raise HTTPException(
                 status_code=403, detail="Permisos insuficientes para esta acción."
             )

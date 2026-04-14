@@ -35,22 +35,18 @@ class CognitoRepository(UsuarioInterface):
             )
         return usuarios
 
-    def asignar_rol(self, email: str, rol: str) -> None:
+    def asignar_rol(self, username: str, rol: str) -> None:
         """Agrega al usuario a un grupo de Cognito (el rol)"""
         self.client.admin_add_user_to_group(
-            UserPoolId=self.user_pool_id, Username=email, GroupName=rol.lower()
+            UserPoolId=self.user_pool_id, Username=username, GroupName=rol
         )
 
-    def cambiar_rol_usuario(self, email: str, rol_antiguo: str, rol_nuevo: str) -> None:
-        """Mueve a un usuario de un grupo a otro de forma atómica"""
-        if rol_antiguo and rol_antiguo != "sin_asignar":
+    def remover_rol(self, username: str, rol: str) -> None:
+        """Remueve a un usuario de un grupo de Cognito"""
+        if rol and rol != "sin_asignar":
             self.client.admin_remove_user_from_group(
-                UserPoolId=self.user_pool_id,
-                Username=email,
-                GroupName=rol_antiguo.lower(),
+                UserPoolId=self.user_pool_id, Username=username, GroupName=rol
             )
-        if rol_nuevo != "sin_asignar":
-            self.asignar_rol(email, rol_nuevo)
 
     def eliminar_usuario(self, email: str) -> None:
         self.client.admin_delete_user(UserPoolId=self.user_pool_id, Username=email)

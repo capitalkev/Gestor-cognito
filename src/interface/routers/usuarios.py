@@ -24,15 +24,24 @@ def listar_empleados(
     return service.execute()
 
 
-@router.put("/{email}/rol")
-def actualizar_rol(
-    email: str,
-    rol_antiguo: str,
-    rol_nuevo: str,
+@router.post("/{username}/roles/{rol}")
+def agregar_rol(
+    username: str,
+    rol: str,
     admin_user: User = Depends(require_roles(["admin"])),
     service: UpdateUsuarios = Depends(update_rol_service),
 ) -> None:
-    return service.execute(email, rol_antiguo, rol_nuevo)
+    return service.asignar(username, rol)
+
+
+@router.delete("/{username}/roles/{rol}")
+def quitar_rol( 
+    username: str,
+    rol: str,
+    admin_user: User = Depends(require_roles(["admin"])),
+    service: UpdateUsuarios = Depends(update_rol_service),
+) -> None:
+    return service.remover(username, rol)
 
 
 @router.delete("/{email}")

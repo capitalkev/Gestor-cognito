@@ -54,14 +54,9 @@ class CognitoTokenValidator:
                 if not g.endswith("_google") and "us-east-1" not in g
             ]
 
-            if "admin" in grupos_reales:
-                rol_asignado = "admin"
-            elif grupos_reales:
-                rol_asignado = grupos_reales[0]
-            else:
-                rol_asignado = "sin_asignar"
+            roles_asignados = grupos_reales if grupos_reales else ["sin_asignar"]
 
-            return User(email=email, nombre=email, rol=rol_asignado)
+            return User(email=email, nombre=email, roles=roles_asignados)
 
         except HTTPException:
             raise
