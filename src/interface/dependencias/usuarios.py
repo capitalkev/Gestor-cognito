@@ -20,7 +20,6 @@ if not COGNITO_USER_POOL_ID:
 
 token_validator = CognitoTokenValidator(AWS_REGION, COGNITO_USER_POOL_ID)
 
-# Instanciamos el esquema de seguridad para Swagger
 security_scheme = HTTPBearer()
 
 

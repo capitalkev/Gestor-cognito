@@ -12,7 +12,6 @@ class CognitoRepository(UsuarioInterface):
         self.client = boto3.client("cognito-idp", region_name=self.region)
 
     def listar_usuarios(self) -> list[dict[str, Any]]:
-        # Obtenemos usuarios y sus grupos asociados
         response = self.client.list_users(UserPoolId=self.user_pool_id)
         usuarios = []
         for user in response.get("Users", []):
@@ -20,7 +19,6 @@ class CognitoRepository(UsuarioInterface):
                 (a["Value"] for a in user["Attributes"] if a["Name"] == "email"), "N/A"
             )
 
-            # Obtener grupos del usuario directamente de Cognito
             groups_resp = self.client.admin_list_groups_for_user(
                 UserPoolId=self.user_pool_id, Username=user["Username"]
             )
