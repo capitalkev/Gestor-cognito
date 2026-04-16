@@ -35,7 +35,7 @@ def agregar_rol(
 
 
 @router.delete("/{username}/roles/{rol}")
-def quitar_rol( 
+def quitar_rol(
     username: str,
     rol: str,
     admin_user: User = Depends(require_roles(["admin"])),
