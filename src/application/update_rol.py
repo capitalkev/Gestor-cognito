@@ -6,7 +6,9 @@ class UpdateUsuarios:
         self.repository = repository
 
     def asignar(self, email: str, rol: str) -> None:
-        return self.repository.asignar_rol(email, rol)
+        self.repository.asignar_rol(email, rol)
+        self.repository.revocar_sesiones(email)
 
     def remover(self, email: str, rol: str) -> None:
-        return self.repository.remover_rol(email, rol)
+        self.repository.remover_rol(email, rol)
+        self.repository.revocar_sesiones(email)

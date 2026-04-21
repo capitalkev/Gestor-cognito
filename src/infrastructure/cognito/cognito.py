@@ -48,5 +48,12 @@ class CognitoRepository(UsuarioInterface):
                 UserPoolId=self.user_pool_id, Username=username, GroupName=rol
             )
 
+    def revocar_sesiones(self, username: str) -> None:
+        """Fuerza el cierre de sesión en todos los dispositivos del usuario"""
+        self.client.admin_user_global_sign_out(
+            UserPoolId=self.user_pool_id, Username=username
+        )
+
     def eliminar_usuario(self, email: str) -> None:
+        """Elimina un usuario de Cognito"""
         self.client.admin_delete_user(UserPoolId=self.user_pool_id, Username=email)
