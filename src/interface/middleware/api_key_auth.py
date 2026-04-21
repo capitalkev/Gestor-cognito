@@ -15,6 +15,7 @@ class ApiKeyMiddleware(BaseHTTPMiddleware):
         self.api_keys = api_keys
         self.public_paths = [
             "/",
+            "/health",
             "/livez",
             "/readyz",
             "/docs",
