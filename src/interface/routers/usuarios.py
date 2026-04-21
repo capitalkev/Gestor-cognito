@@ -1,11 +1,11 @@
 from typing import Any
 
+from capitalexpress_auth import User
 from fastapi import APIRouter, Depends
 
 from src.application.delete_usuario import DeleteUsuarios
 from src.application.get_usuario import GetUsuarios
 from src.application.update_rol import UpdateUsuarios
-from src.domain.models import User
 from src.interface.dependencias.usuarios import (
     delete_usuarios_service,
     get_usuarios_service,

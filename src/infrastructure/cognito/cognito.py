@@ -39,7 +39,6 @@ class CognitoRepository(UsuarioInterface):
 
     def asignar_rol(self, username: str, rol: str) -> None:
         """Agrega al usuario a un grupo de Cognito (el rol)"""
-        print(f"Intentando asignar rol '{rol}' al usuario '{username}'")
         try:
             self.client.admin_add_user_to_group(
                 UserPoolId=self.user_pool_id, Username=username, GroupName=rol
@@ -48,14 +47,13 @@ class CognitoRepository(UsuarioInterface):
             raise HTTPException(
                 status_code=404, detail=f"El usuario {username} no existe en Cognito"
             ) from None
-        except botocore.exceptions.ClientError:
+        except botocore.exceptions.ClientError as e:
             raise HTTPException(
-                status_code=400, detail="Error de AWS al asignar el rol"
+                status_code=400, detail=f"Error de AWS al asignar el rol: {str(e)}"
             ) from None
 
     def remover_rol(self, username: str, rol: str) -> None:
         """Remueve a un usuario de un grupo de Cognito"""
-        print(f"Intentando remover rol '{rol}' del usuario '{username}'")
         if rol:
             try:
                 self.client.admin_remove_user_from_group(
@@ -63,8 +61,10 @@ class CognitoRepository(UsuarioInterface):
                 )
             except self.client.exceptions.UserNotFoundException:
                 pass
-            except Exception as e:
-                print(f"Ignorando error al quitar rol {rol}: {e}")
+            except botocore.exceptions.ClientError as e:
+                raise HTTPException(
+                    status_code=400, detail=f"Error de AWS al remover el rol: {str(e)}"
+                ) from None
 
     def revocar_sesiones(self, username: str) -> None:
         """Fuerza el cierre de sesión en todos los dispositivos del usuario"""
@@ -74,4 +74,13 @@ class CognitoRepository(UsuarioInterface):
 
     def eliminar_usuario(self, email: str) -> None:
         """Elimina un usuario de Cognito"""
-        self.client.admin_delete_user(UserPoolId=self.user_pool_id, Username=email)
+        try:
+            self.client.admin_delete_user(UserPoolId=self.user_pool_id, Username=email)
+        except self.client.exceptions.UserNotFoundException:
+            raise HTTPException(
+                status_code=404, detail=f"El usuario {email} no existe en Cognito"
+            ) from None
+        except botocore.exceptions.ClientError as e:
+            raise HTTPException(
+                status_code=400, detail=f"Error de AWS al eliminar el usuario: {str(e)}"
+            ) from None
