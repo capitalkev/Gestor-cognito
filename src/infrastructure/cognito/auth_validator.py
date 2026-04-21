@@ -30,13 +30,25 @@ class CognitoTokenValidator:
     async def verify_token(self, token: str) -> User:
         try:
             jwks = await self._get_jwks()
-            claims = jwt.decode(
-                token,
-                jwks,
-                algorithms=["RS256"],
-                audience=self.app_client_id,
-                options={"verify_at_hash": False},
-            )
+
+            try:
+                claims = jwt.decode(
+                    token,
+                    jwks,
+                    algorithms=["RS256"],
+                    audience=self.app_client_id,
+                    options={"verify_at_hash": False},
+                )
+            except Exception:
+                self._jwks = {}
+                jwks = await self._get_jwks()
+                claims = jwt.decode(
+                    token,
+                    jwks,
+                    algorithms=["RS256"],
+                    audience=self.app_client_id,
+                    options={"verify_at_hash": False},
+                )
 
             email = claims.get("email", claims.get("username", "desconocido")).lower()
 
@@ -61,4 +73,4 @@ class CognitoTokenValidator:
         except HTTPException:
             raise
         except Exception:
-            raise HTTPException(status_code=401, detail="Token inválido:") from None
+            raise HTTPException(status_code=401, detail="Token inválido") from None

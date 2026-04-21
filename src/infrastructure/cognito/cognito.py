@@ -1,6 +1,8 @@
 from typing import Any
 
 import boto3
+import botocore.exceptions
+from fastapi import HTTPException
 
 from src.domain.interfaces import UsuarioInterface
 
@@ -37,16 +39,32 @@ class CognitoRepository(UsuarioInterface):
 
     def asignar_rol(self, username: str, rol: str) -> None:
         """Agrega al usuario a un grupo de Cognito (el rol)"""
-        self.client.admin_add_user_to_group(
-            UserPoolId=self.user_pool_id, Username=username, GroupName=rol
-        )
+        print(f"Intentando asignar rol '{rol}' al usuario '{username}'")
+        try:
+            self.client.admin_add_user_to_group(
+                UserPoolId=self.user_pool_id, Username=username, GroupName=rol
+            )
+        except self.client.exceptions.UserNotFoundException:
+            raise HTTPException(
+                status_code=404, detail=f"El usuario {username} no existe en Cognito"
+            ) from None
+        except botocore.exceptions.ClientError:
+            raise HTTPException(
+                status_code=400, detail="Error de AWS al asignar el rol"
+            ) from None
 
     def remover_rol(self, username: str, rol: str) -> None:
         """Remueve a un usuario de un grupo de Cognito"""
-        if rol and rol != "sin_asignar":
-            self.client.admin_remove_user_from_group(
-                UserPoolId=self.user_pool_id, Username=username, GroupName=rol
-            )
+        print(f"Intentando remover rol '{rol}' del usuario '{username}'")
+        if rol:
+            try:
+                self.client.admin_remove_user_from_group(
+                    UserPoolId=self.user_pool_id, Username=username, GroupName=rol
+                )
+            except self.client.exceptions.UserNotFoundException:
+                pass
+            except Exception as e:
+                print(f"Ignorando error al quitar rol {rol}: {e}")
 
     def revocar_sesiones(self, username: str) -> None:
         """Fuerza el cierre de sesión en todos los dispositivos del usuario"""
