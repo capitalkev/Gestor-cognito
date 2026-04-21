@@ -59,7 +59,7 @@ async def get_current_user(
 
 def require_roles(allowed_roles: list[str]) -> Callable[..., User]:
     def role_checker(current_user: User = Depends(get_current_user)) -> User:
-        if "sin_asignar" in current_user.roles and len(current_user.roles) == 1:
+        if not current_user.roles:
             raise HTTPException(
                 status_code=403,
                 detail="Tu cuenta aún no tiene un rol asignado por un administrador.",

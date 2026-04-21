@@ -32,7 +32,7 @@ class CognitoRepository(UsuarioInterface):
                     "email": email,
                     "status": user["UserStatus"],
                     "enabled": user["Enabled"],
-                    "roles": roles if roles else ["sin_asignar"],
+                    "roles": roles,
                 }
             )
         return usuarios
